@@ -117,7 +117,7 @@ const addDays=(s,n)=>{const[y,m,d]=s.split("-").map(Number);return ymd(new Date(
 const b64u=u=>btoa(String.fromCharCode(...new Uint8Array(u))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
 const slug=s=>s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,18).replace(/-$/,"")||"loja";
 const rnd=n=>Array.from(crypto.getRandomValues(new Uint8Array(n)),x=>"abcdefghjkmnpqrstuvwxyz23456789"[x%31]).join("");
-const saud=()=>{const h=new Date().getHours();return h<12?"Bom dia":h<18?"Boa tarde":"Boa noite"};
+const saud=()=>{const h=new Date().getHours();return h>=5&&h<12?"Bom dia":h>=12&&h<18?"Boa tarde":"Boa noite"};
 
 /* banco: grava o plano direto na comanda do cliente (assim o link fica curto) */
 const FB={apiKey:"AIzaSyBs6XpI7Iu_in9CHU1PfuwIxj1sQTyaa2A",authDomain:"comanda-gbbrasa.firebaseapp.com",projectId:"comanda-gbbrasa",storageBucket:"comanda-gbbrasa.firebasestorage.app",messagingSenderId:"861719304220",appId:"1:861719304220:web:4fcb42056c1559d43327d9"};
@@ -167,9 +167,9 @@ function msgPara(c,tipo){
 📅 *Válido até:* ${ate}
 
 📲 *Para começar:*
-1️⃣ Abra o link abaixo no celular do dono
-2️⃣ Crie sua senha e escolha o modelo de cardápio
-3️⃣ Pronto! Depois é só conectar os celulares da equipe
+*1.* Abra o link abaixo no celular do dono
+*2.* Crie sua senha e escolha o modelo de cardápio
+*3.* Pronto! Depois é só conectar os celulares da equipe
 
 🔗 *Seu acesso:*
 ${linkDe(c)}
@@ -202,7 +202,7 @@ Passando para lembrar que a mensalidade da *Comanda Online* do *${c.nome}* ${d<0
 💳 *Plano ${PL[c.plano].n}:* R$ ${PL[c.plano].v},00 por mês
 
 Assim que o pagamento for feito, a renovação é automática nos celulares. Qualquer dúvida, estou à disposição! 🙏`}
-const waTo=(fone,txt)=>{const d=String(fone||"").replace(/\D/g,"");return"https://wa.me/"+(d?(d.length<=11?"55"+d:d):"")+"?text="+encodeURIComponent(txt)};
+const waTo=(fone,txt)=>{const d=String(fone||"").replace(/\D/g,"");return"https://api.whatsapp.com/send?"+(d?"phone="+(d.length<=11?"55"+d:d)+"&":"")+"text="+encodeURIComponent(txt)};
 
 $("f").onsubmit=async e=>{e.preventDefault();const err=m=>{$("err").textContent=m;$("err").hidden=false};$("err").hidden=true;
   const nome=$("nome").value.trim(),codigo=$("codigo").value.trim().toLowerCase(),valido=$("valido").value,fone=$("fone").value.trim();

@@ -279,7 +279,7 @@ const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const sid6=()=>Math.random().toString(36).slice(2,8);
 const money=v=>{const n=parseFloat(String(v).replace(/[^\d,.-]/g,"").replace(/\.(?=\d{3}(\D|$))/g,"").replace(",","."));return Number.isFinite(n)&&n>=0&&n<100000?Math.round(n*100)/100:null};
 const num=v=>{const n=parseInt(String(v).trim(),10);return Number.isFinite(n)&&n>=0&&n<=99999?n:null};
-const waLink=t=>"https://wa.me/"+SUPORTE_WA+"?text="+encodeURIComponent(t);
+const waLink=t=>"https://api.whatsapp.com/send?phone="+SUPORTE_WA+"&text="+encodeURIComponent(t);
 
 /* ================= banco de dados (Firebase) =================
    Enquanto apiKey estiver vazio, roda em modo teste, só neste aparelho. */
@@ -1037,7 +1037,7 @@ function mesasAdmHTML(){
   <div class="box"><b style="font:400 20px var(--display);text-transform:uppercase">Número de mesas</b><p class="note" style="margin:4px 0 10px">Quantas mesas aparecem no celular do garçom.</p><div class="step"><button class="qb" type="button" data-mesas="-1" aria-label="Menos mesas">−</button><b id="nMesas">${CONFIG.mesas}</b><button class="qb" type="button" data-mesas="1" aria-label="Mais mesas">+</button></div></div>
   <div class="box"><b style="font:400 20px var(--display);text-transform:uppercase">Conectar outro celular</b><p class="note" style="margin:6px 0 10px">Mande este link para o funcionário. Ao abrir, o celular já entra no estabelecimento; depois ele escolhe a função.${F.setores?"":" No plano Básico são 2 funções: Garçom e Preparo."}</p>
   <p class="note" style="margin:0 0 10px">Código: <b style="color:var(--ash)">${esc(CODE)}</b></p><button class="btn wide" type="button" data-copylink="${esc(link)}">Copiar link de acesso</button>
-  <a class="btn ok wide" href="https://wa.me/?text=${encodeURIComponent("Abra este link para entrar na comanda de "+(CONFIG.nome||"nosso estabelecimento")+": "+link)}" target="_blank" rel="noopener" style="display:flex;justify-content:center;align-items:center;margin-top:8px;text-decoration:none">Mandar pelo WhatsApp</a>
+  <a class="btn ok wide" href="https://api.whatsapp.com/send?text=${encodeURIComponent("Abra este link para entrar na comanda de "+(CONFIG.nome||"nosso estabelecimento")+": "+link)}" target="_blank" rel="noopener" style="display:flex;justify-content:center;align-items:center;margin-top:8px;text-decoration:none">Mandar pelo WhatsApp</a>
   <button class="btn ghost wide" type="button" data-trocaloja style="margin-top:8px">Sair deste estabelecimento</button></div>`;
 }
 function planoHTML(){
