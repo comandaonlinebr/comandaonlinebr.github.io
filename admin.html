@@ -6,6 +6,8 @@
 <meta name="robots" content="noindex,nofollow">
 <meta name="theme-color" content="#1c1613">
 <link rel="icon" href="icons/icon-192.png">
+<link rel="manifest" href="manifest-admin.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap">
@@ -255,4 +257,5 @@ $("exp").onclick=()=>{const a=document.createElement("a");a.href=URL.createObjec
 $("imp").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const arr=JSON.parse(await f.text());if(!Array.isArray(arr))throw 0;const cur=CLI();arr.forEach(c=>{if(c&&c.codigo&&!cur.some(x=>x.codigo===c.codigo))cur.push(c)});saveCli(cur);lista();toast("Lista importada")}catch(er){toast("Arquivo inválido",true)}};
 if(!window.crypto||!crypto.subtle){$("keyStatus").textContent="Abra esta página no Chrome atualizado (precisa de https).";}else init();
 </script>
+<script>if("serviceWorker" in navigator&&location.protocol==="https:")addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));</script>
 </body></html>
