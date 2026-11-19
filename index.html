@@ -250,7 +250,7 @@ const PUBKEY={kty:"EC",crv:"P-256",x:"0MuiQKyAGD2OWTo1MBNIpUmYj9f0UUS9UFSyGYVLyR
 const PLANOS={
   basico:{n:"Básico",preco:15,itens:["Cardápio próprio, você mesmo edita","Mesas e comandas","Garçom lança o pedido","Pedido aparece no celular de quem prepara","Fechar conta com o total, 10% e divisão"]},
   inter:{n:"Intermediário",preco:25,itens:["Tudo do Básico","Setores separados (cozinha, churrasqueira, bar…)","Celulares ilimitados conectados","Som e notificação a cada pedido","Caixa com Pix, cartão e dinheiro (troco)","Caixa do dia"]},
-  completo:{n:"Completo",preco:50,itens:["Tudo do Intermediário","Estoque com baixa automática e item esgotado","Senha do dono para o faturamento","Faturamento escondido dos funcionários","Relatórios: ontem, 7 e 30 dias, mais vendidos"]}
+  completo:{n:"Completo",preco:50,itens:["Tudo do Intermediário","Estoque com baixa automática e item esgotado","Senha do dono para o faturamento","Faturamento escondido dos funcionários","Relatórios por dia, semana e mês, com os mais vendidos"]}
 };
 const FEATS={
   basico:{setores:0,som:0,caixa:0,dia:0,estoque:0,dono:0,rel:0},
@@ -803,17 +803,22 @@ function relHTML(list,multi){
   ${rank.length?`<h2 class="sec" style="font-size:20px">Mais vendidos</h2><div class="box"><div class="lines">${rank.map(([n,q])=>`<div class="ln" style="grid-template-columns:auto minmax(0,1fr)"><span class="q">${q}×</span><span>${esc(n)}</span></div>`).join("")}</div></div>`:""}`;
 }
 function diaHTML(){
-  const per=F.rel?`<div class="per" role="group" aria-label="Período">${[["hoje","Hoje"],["ontem","Ontem"],["7","7 dias"],["30","30 dias"]].map(([k,n])=>`<button type="button" data-per="${k}" aria-pressed="${PER===k}">${n}</button>`).join("")}</div>`:"";
+  const per=F.rel?`<div class="per" role="group" aria-label="Período">${[["hoje","Hoje"],["ontem","Ontem"],["7","7 dias"],["30","30 dias"],["mes","Este mês"],["mesant","Mês passado"]].map(([k,n])=>`<button type="button" data-per="${k}" aria-pressed="${PER===k}">${n}</button>`).join("")}</div>`:"";
   if(PER!=="hoje"&&F.rel){
     if(!PERDATA||PERDATA.k!==PER)return per+`<div class="empty" style="margin-top:12px"><b>Carregando…</b></div>`;
-    return per+relHTML(PERDATA.list,PER!=="ontem")+(PERDATA.list.length?"":`<div class="empty" style="margin-top:12px"><b>Sem vendas no período</b></div>`);
+    return per+`<p class="note" style="margin:10px 0 0">Período: ${PERDATA.from===PERDATA.to?dmy(PERDATA.from):dmy(PERDATA.from).slice(0,5)+" a "+dmy(PERDATA.to)}</p>`+relHTML(PERDATA.list,PER!=="ontem")+(PERDATA.list.length?"":`<div class="empty" style="margin-top:12px"><b>Sem vendas no período</b></div>`);
   }
   return per+relHTML(FECH,false)+`<h2 class="sec" style="font-size:20px">Contas fechadas hoje</h2>${FECH.length?`<div class="box"><div class="lines">${FECH.map(f=>`<div class="ln" style="grid-template-columns:auto minmax(0,1fr) auto"><span class="q">${f.mesa}</span><span>Mesa ${f.mesa} · ${hhmm(f.fechadoEm)}<small>${esc(f.pagamento)}${f.servico?" · com 10%":""}</small></span><span class="v">${brl(f.total)}</span></div>`).join("")}</div></div>`:`<div class="empty"><b>Nenhuma conta fechada hoje</b>As contas fechadas aparecem aqui com a forma de pagamento.</div>`}`;
 }
+function perRange(k){const t=workday();
+  if(k==="ontem")return[workday(1),workday(1)];
+  if(k==="mes")return[t.slice(0,8)+"01",t];
+  if(k==="mesant"){const[y,m]=t.split("-").map(Number);return[ymd(new Date(y,m-2,1)),ymd(new Date(y,m-1,0))]}
+  return[workday(+k-1),t]}
 async function loadPer(k){
   PER=k;PERDATA=null;refresh();if(k==="hoje"||!KEY)return;
-  const to=k==="ontem"?workday(1):workday(),from=k==="ontem"?workday(1):workday(+k-1);
-  try{const list=await getRange("cx_"+KEY,"dia",from,to);if(PER===k){PERDATA={k,list:list.sort((a,b)=>b.fechadoEm-a.fechadoEm)};refresh()}}catch(e){toast("Não deu para carregar o relatório. Confira a internet.",true)}
+  const[from,to]=perRange(k);
+  try{const list=await getRange("cx_"+KEY,"dia",from,to);if(PER===k){PERDATA={k,from,to,list:list.sort((a,b)=>b.fechadoEm-a.fechadoEm)};refresh()}}catch(e){toast("Não deu para carregar o relatório. Confira a internet.",true)}
 }
 let CLOSING=false;
 async function fecharConta(m){
