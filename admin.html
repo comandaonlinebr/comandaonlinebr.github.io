@@ -117,7 +117,7 @@ const addDays=(s,n)=>{const[y,m,d]=s.split("-").map(Number);return ymd(new Date(
 const b64u=u=>btoa(String.fromCharCode(...new Uint8Array(u))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
 const slug=s=>s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,18).replace(/-$/,"")||"loja";
 const rnd=n=>Array.from(crypto.getRandomValues(new Uint8Array(n)),x=>"abcdefghjkmnpqrstuvwxyz23456789"[x%31]).join("");
-const saud=()=>{const h=new Date().getHours();return h>=5&&h<12?"Bom dia":h>=12&&h<18?"Boa tarde":"Boa noite"};
+const saud=()=>{const h=new Date().getHours();return h>=6&&h<13?"Bom dia":h>=13&&h<19?"Boa tarde":"Boa noite"}; // 6h–12h59 dia, 13h–18h59 tarde, 19h–5h59 noite
 
 /* banco: grava o plano direto na comanda do cliente (assim o link fica curto) */
 const FB={apiKey:"AIzaSyBs6XpI7Iu_in9CHU1PfuwIxj1sQTyaa2A",authDomain:"comanda-gbbrasa.firebaseapp.com",projectId:"comanda-gbbrasa",storageBucket:"comanda-gbbrasa.firebasestorage.app",messagingSenderId:"861719304220",appId:"1:861719304220:web:4fcb42056c1559d43327d9"};
