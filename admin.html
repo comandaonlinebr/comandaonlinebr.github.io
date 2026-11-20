@@ -84,6 +84,7 @@ textarea{min-height:80px;resize:vertical;font-size:14px}
   <label for="valido">Válido até</label>
   <div class="row"><input type="date" id="valido" style="flex:2"><button class="btn ghost" type="button" data-mais="30">+30</button><button class="btn ghost" type="button" data-mais="90">+90</button></div>
   <label for="fone">WhatsApp do cliente (opcional)</label><input id="fone" inputmode="tel" placeholder="Ex.: 62 99999-9999" autocomplete="off">
+  <label for="marca">Logo do cliente (opcional)</label><input id="marca" maxlength="24" placeholder="Código da logo que o Claude te passar" autocomplete="off" autocapitalize="none" spellcheck="false">
   <p class="note" id="err" style="color:var(--bad)" hidden></p>
   <button class="btn pri wide" type="submit" style="margin-top:14px;min-height:54px">Gerar acesso</button>
   <div id="out" hidden></div>
@@ -200,7 +201,7 @@ $("pwChange").onclick=async()=>{PWMODE="troca";
 $("keyForget").onclick=e=>{const b=e.target;if(!b.dataset.sure){b.dataset.sure=1;b.textContent="Toque de novo para apagar";return}ls("co_admin_key",null);ls(LOCK,null);PRIV=null;init()};
 function novoCodigo(){$("codigo").value=slug($("nome").value)+"-"+rnd(5)}
 $("novoCod").onclick=()=>{delete $("codigo").dataset.fixo;novoCodigo()};
-$("nome").oninput=()=>{if(!$("codigo").dataset.fixo)novoCodigo()};
+$("nome").oninput=()=>{if(!$("codigo").dataset.fixo){novoCodigo();$("marca").value=""}};
 $("codigo").oninput=()=>{$("codigo").dataset.fixo=1};
 let PLANO="inter";
 $("plano").onclick=e=>{const b=e.target.closest("button");if(!b)return;PLANO=b.dataset.p;$("plano").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b))};
@@ -257,17 +258,18 @@ Assim que o pagamento for feito, a renovação é automática nos celulares. Qua
 const waTo=(fone,txt)=>{const d=String(fone||"").replace(/\D/g,"");return"https://api.whatsapp.com/send?"+(d?"phone="+(d.length<=11?"55"+d:d)+"&":"")+"text="+encodeURIComponent(txt)};
 
 $("f").onsubmit=async e=>{e.preventDefault();const err=m=>{$("err").textContent=m;$("err").hidden=false};$("err").hidden=true;
-  const nome=$("nome").value.trim(),codigo=$("codigo").value.trim().toLowerCase(),valido=$("valido").value,fone=$("fone").value.trim();
+  const nome=$("nome").value.trim(),codigo=$("codigo").value.trim().toLowerCase(),valido=$("valido").value,fone=$("fone").value.trim();const marca=$("marca").value.trim().toLowerCase();
+  if(marca&&!/^[a-z0-9]{6,24}$/.test(marca))return err("O código da logo tem só letras minúsculas e números (6 a 24).");
   if(!nome)return err("Escreva o nome do estabelecimento.");
   if(!/^[a-z0-9][a-z0-9_-]{7,59}$/.test(codigo))return err("O código precisa de 8 a 60 letras minúsculas, números ou traço, sem espaço.");
   if(!/^\d{4}-\d{2}-\d{2}$/.test(valido))return err("Escolha a data de validade.");
   const bt=$("f").querySelector("button[type=submit]");bt.disabled=true;bt.textContent="Gerando…";
-  const lic=await sign({l:codigo,p:PLANO,v:valido,n:nome,e:Date.now()});
+  const pl={l:codigo,p:PLANO,v:valido,n:nome,e:Date.now()};if(marca)pl.m=marca;const lic=await sign(pl);
   const ok=await gravaLic(codigo,lic);
   bt.disabled=false;bt.textContent="Gerar acesso";
   const all=CLI();const ex=all.find(c=>c.codigo===codigo);
   const tipo=!ex?"novo":ex.plano!==PLANO?"plano":"renova";
-  const c=Object.assign(ex||{criado:Date.now()},{nome,codigo,plano:PLANO,valido,fone:fone||(ex&&ex.fone)||"",lic,ok,emitido:Date.now()});
+  const c=Object.assign(ex||{criado:Date.now()},{nome,codigo,plano:PLANO,valido,fone:fone||(ex&&ex.fone)||"",marca,lic,ok,emitido:Date.now()});
   if(!ex)all.unshift(c);saveCli(all);
   mostra(c,tipo);lista();
 };
@@ -293,7 +295,7 @@ function lista(){
   :'<p class="note">Nenhum cliente ainda. Crie o primeiro acima.</p>';
 }
 function fill(c,renova){
-  $("nome").value=c.nome;$("codigo").value=c.codigo;$("codigo").dataset.fixo=1;$("fone").value=c.fone||"";
+  $("nome").value=c.nome;$("codigo").value=c.codigo;$("codigo").dataset.fixo=1;$("fone").value=c.fone||"";$("marca").value=c.marca||"";
   PLANO=c.plano;$("plano").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.p===PLANO));
   $("valido").value=renova?addDays(dias(c.valido)>=0?c.valido:ymd(new Date()),30):c.valido;
   $("out").hidden=true;scrollTo({top:$("f").offsetTop-70,behavior:"smooth"});

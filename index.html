@@ -5,9 +5,8 @@
 <title>Comanda Online</title>
 <meta name="theme-color" content="#1c1613">
 <meta name="description" content="Comanda digital para restaurantes: garçom, preparo e caixa conectados no celular.">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
+<script>(function(){var m="";try{m=localStorage.getItem("co_marca")||""}catch(e){}if(!/^[a-z0-9]{6,24}$/.test(m))m="";window.MARCA0=m;var b=m?"m/"+m:"";
+document.write(m?'<link rel="manifest" href="'+b+'.webmanifest"><link rel="icon" href="'+b+'-192.png"><link rel="apple-touch-icon" href="'+b+'-192.png">':'<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icons/icon-192.png"><link rel="apple-touch-icon" href="icons/icon-192.png">')})();</script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -37,6 +36,7 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;backgroun
 header.top .wrap{display:flex;align-items:center;gap:10px;min-height:56px;padding-block:6px}
 .brand{font:400 22px/1 var(--display);letter-spacing:.02em;text-transform:uppercase;white-space:nowrap}
 .brand span{color:var(--ember)}
+.blogo{width:34px;height:34px;border-radius:9px;object-fit:cover;margin-right:10px;vertical-align:middle;flex:none}
 .prnbtn{position:relative;padding:6px 10px!important;margin-right:8px}.prnbtn+.rolebtn{margin-left:0}
 .pdot{position:absolute;top:4px;right:4px;width:9px;height:9px;border-radius:50%}
 .noprn [data-printt],.noprn [data-printenv],.noprn [data-printconta],.noprn [data-printcm]{display:none!important}
@@ -227,10 +227,14 @@ input[type=password]{width:100%;background:var(--coal);border:1px solid var(--li
 .item[disabled]{cursor:not-allowed}
 .brand{overflow:hidden;text-overflow:ellipsis;min-width:0}
 .brand #brandName{display:inline!important;color:var(--ash)}
+
+.brand.hasl{display:flex;align-items:center;white-space:normal}
+.brand.hasl #brandName{display:-webkit-box!important;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:18px;line-height:1.05}
+.brand.hasl #brandSub{display:none}
 </style>
 </head><body>
 <header class="top"><div class="wrap">
-  <div class="brand"><span id="brandName">Comanda</span> <span id="brandSub">Online</span></div>
+  <div class="brand"><img id="brandLogo" class="blogo" alt="" hidden><span id="brandName">Comanda</span> <span id="brandSub">Online</span></div>
   <button class="rolebtn prnbtn" type="button" id="prnBtn" hidden aria-label="Impressora"></button>
   <button class="rolebtn" type="button" id="roleBtn" hidden><span class="sync" id="sync"></span><span id="roleName"></span></button>
 </div></header>
@@ -389,9 +393,18 @@ async function applyLicDoc(){
     if(h&&(!o||(h.e||0)>(o.e||0))){o=h;try{await put("config/licenca",{lic:h.raw,atualizado:Date.now()})}catch(e){}toast(dnum(h.v)<dnum(today())?"Esse código já venceu em "+dmy(h.v)+". Peça a renovação.":"Plano "+PLANOS[h.p].n+" ativado até "+dmy(h.v),dnum(h.v)<dnum(today()))}
     else if(!h)toast("Esse código de ativação não é deste estabelecimento.",true)}
   const key=o?o.raw:"";if(LIC!==undefined&&key===LICKEY)return;LICKEY=key;
-  const was=LIC&&LIC.p;LIC=o;F=o?FEATS[o.p]:FEATS.basico;
+  const was=LIC&&LIC.p;LIC=o;F=o?FEATS[o.p]:FEATS.basico;if(applyMarca())return;
   if(was!==(o&&o.p)){buildMenu();if(F.dono&&KVIA==="plain"){setKey("")}}
   syncPlainKey();if(KEY&&!FECH_UN)startFech();render();
+}
+/* marca do cliente (logo no ícone e no topo): vem assinada na licença, campo m */
+function applyMarca(){
+  const m=LIC&&typeof LIC.m==="string"&&/^[a-z0-9]{6,24}$/.test(LIC.m)?LIC.m:"";
+  if((ls("co_marca")||"")!==m)ls("co_marca",m||null);
+  if(m!==(window.MARCA0||"")){let r="";try{r=sessionStorage.getItem("co_mr")||""}catch(e){}
+    if(r!==m){try{sessionStorage.setItem("co_mr",m)}catch(e){}location.reload();return true}}
+  const im=$("brandLogo");if(im){if(m){im.src="m/"+m+"-logo.png";im.hidden=false;im.onerror=()=>{im.hidden=true;im.parentNode.classList.remove("hasl")}}else im.hidden=true;im.parentNode.classList.toggle("hasl",!!m)}
+  return false;
 }
 // link de ativação aberto com a comanda já aberta (só muda o # do endereço)
 addEventListener("hashchange",()=>{const h=location.hash||"";const plain=h.match(/^#([a-z0-9][a-z0-9_-]{7,59})$/i);if(!/loja=|lic=/.test(h)&&!plain)return;
@@ -728,7 +741,7 @@ async function enviar(){
   const need={};DRAFT.forEach(d=>{if(d.sid&&tracked(d.sid))need[d.sid]=(need[d.sid]||0)+d.q});
   for(const k of Object.keys(need)){if(need[k]>Math.max(0,STOCK[k])){SENDING=false;if(b){b.disabled=false;b.textContent="Enviar pedido da Mesa "+VIEW}const r=Math.max(0,STOCK[k]),n=(ITEM[k]||{}).n||"Item";toast(r?"Só restam "+r+" de "+n+". Diminua a quantidade.":n+" acabou. Tire do pedido.",true);return}}
   const m=VIEW,now=Date.now(),c=CONTAS[m],abertaEm=c?c.abertaEm:now;
-  const novos=DRAFT.map(d=>({n:d.n,p:d.p,q:d.q,extra:d.extra,obs:d.obs.trim(),t:now,u:uid()}));
+  const novos=DRAFT.map(d=>({n:d.n,p:d.p,q:d.q,extra:d.extra,obs:d.obs.trim(),t:now,u:uid(),s:d.setor||""}));
   const porSetor={};DRAFT.forEach(d=>{(porSetor[d.setor]=porSetor[d.setor]||[]).push({q:d.q,n:d.n,extra:d.extra,obs:d.obs.trim()});if(d.aviso)(porSetor[d.aviso]=porSetor[d.aviso]||[]).push({q:d.q,n:d.n,extra:(d.extra?d.extra+" · ":"")+"vai com "+(SETOR[d.setor]||""),obs:d.obs.trim()})});
   try{
     await contaAppend(m,{mesa:m,abertaEm,pediuConta:false,atualizado:now},novos);
@@ -937,7 +950,7 @@ function stationHTML(setor){
 function renderSetor(setor){$("app").innerHTML=modeBanner()+stationHTML(setor)}
 
 /* ---------- caixa ---------- */
-function agg(itens){const m=new Map();(itens||[]).forEach(i=>{const k=i.n+"|"+(i.extra||"")+"|"+i.p;const a=m.get(k);if(a)a.q+=i.q;else m.set(k,{k,n:i.n,extra:i.extra||"",p:i.p,q:i.q})});return[...m.values()]}
+function agg(itens){const m=new Map();(itens||[]).forEach(i=>{const k=i.n+"|"+(i.extra||"")+"|"+i.p;const a=m.get(k);if(a)a.q+=i.q;else m.set(k,{k,n:i.n,extra:i.extra||"",p:i.p,q:i.q,s:i.s||""})});return[...m.values()]}
 function pay(m){return PAY[m]=PAY[m]||{servico:false,pessoas:1,forma:"Pix",recebido:"",confirm:false}}
 function totals(m){const c=CONTAS[m],p=pay(m),sub=sumItens(c?c.itens:[]),serv=p.servico?Math.round(sub*10)/100:0,tot=sub+serv;return{sub,serv,tot,cada:tot/Math.max(1,p.pessoas)}}
 const lowStock=()=>F.estoque?stockItems().filter(k=>tracked(k)&&STOCK[k]<=3).length:0;
@@ -987,10 +1000,14 @@ function relHTML(list,multi){
   const tot=list.reduce((a,f)=>a+f.total,0),by={};list.forEach(f=>{by[f.pagamento]=(by[f.pagamento]||0)+f.total});
   const top=new Map();list.forEach(f=>(f.itens||[]).forEach(i=>top.set(i.n,(top.get(i.n)||0)+i.q)));
   const rank=[...top.entries()].sort((a,b)=>b[1]-a[1]).slice(0,multi?10:6);
+  let areas=[];if(F.rel&&SETORES.length>1){const nm={};Object.values(ITEM).forEach(it=>{if(!nm[it.n])nm[it.n]=it.setor});const ar={};
+    list.forEach(f=>(f.itens||[]).forEach(i=>{const k=(i.s&&SETOR[i.s])?i.s:(nm[i.n]||"_");const a=ar[k]=ar[k]||{v:0,q:0};a.v+=i.p*i.q;a.q+=i.q}));
+    const tv=Object.values(ar).reduce((x,a)=>x+a.v,0);areas=Object.keys(ar).map(k=>({k,n:k==="_"?"Itens fora do cardápio atual":SETOR[k],v:ar[k].v,q:ar[k].q,pc:tv?Math.round(ar[k].v*100/tv):0})).sort((a,b)=>b.v-a.v)}
   const dias={};if(multi)list.forEach(f=>{const d=dias[f.dia]=dias[f.dia]||{t:0,n:0};d.t+=f.total;d.n++});
   return`<div class="kpis" style="margin-top:10px"><div class="kpi"><span>Vendido</span><b>${brl(tot)}</b></div><div class="kpi"><span>Contas fechadas</span><b>${list.length}</b></div>
   ${["Pix","Cartão","Dinheiro"].map(k=>`<div class="kpi"><span>${k}</span><b>${brl(by[k]||0)}</b></div>`).join("")}<div class="kpi"><span>Ticket médio</span><b>${brl(list.length?tot/list.length:0)}</b></div></div>
   ${multi&&Object.keys(dias).length?`<h2 class="sec" style="font-size:20px">Por dia</h2><div class="box"><div class="lines">${Object.keys(dias).sort().reverse().map(d=>`<div class="ln" style="grid-template-columns:minmax(0,1fr) auto"><span>${dmy(d)}<small>${dias[d].n} conta${dias[d].n>1?"s":""}</small></span><span class="v">${brl(dias[d].t)}</span></div>`).join("")}</div></div>`:""}
+  ${areas.length?`<h2 class="sec" style="font-size:20px">Vendas por área</h2><div class="box"><div class="lines">${areas.map(a=>`<div class="ln" style="grid-template-columns:minmax(0,1fr) auto"><span>${a.k==="_"?"":dot(a.k)}${esc(a.n)}<small>${a.q} ${a.q>1?"itens":"item"} · ${a.pc}% das vendas</small></span><span class="v">${brl(a.v)}</span></div>`).join("")}</div><p class="note" style="margin:8px 0 0">Valor dos itens, sem os 10% de serviço.</p></div>`:""}
   ${rank.length?`<h2 class="sec" style="font-size:20px">Mais vendidos</h2><div class="box"><div class="lines">${rank.map(([n,q])=>`<div class="ln" style="grid-template-columns:auto minmax(0,1fr)"><span class="q">${q}×</span><span>${esc(n)}</span></div>`).join("")}</div></div>`:""}`;
 }
 function diaHTML(){
@@ -1017,7 +1034,7 @@ async function fecharConta(m){
   const c=CONTAS[m],p=pay(m),T=totals(m),now=Date.now();
   try{
     if(!KEY){toast(F.dono?"Abra o caixa com a senha do dono para fechar contas.":"Conectando com o caixa… tente de novo.",true);CLOSING=false;if(b){b.disabled=false;b.textContent="Confirmar"}return}
-    if(c.itens&&c.itens.length)await add("cx_"+KEY,{mesa:m,itens:agg(c.itens).map(i=>({n:i.n,extra:i.extra,p:i.p,q:i.q})),subtotal:T.sub,servico:T.serv,total:T.tot,pagamento:F.caixa?p.forma:"—",pessoas:p.pessoas,abertaEm:c.abertaEm,fechadoEm:now,dia:workday()});
+    if(c.itens&&c.itens.length)await add("cx_"+KEY,{mesa:m,itens:agg(c.itens).map(i=>({n:i.n,extra:i.extra,p:i.p,q:i.q,s:i.s||""})),subtotal:T.sub,servico:T.serv,total:T.tot,pagamento:F.caixa?p.forma:"—",pessoas:p.pessoas,abertaEm:c.abertaEm,fechadoEm:now,dia:workday()});
     for(const t of TICKETS.filter(t=>t.mesa===m&&t.conta===c.abertaEm))await del("tickets/"+t._id);
     await del("contas/m"+m);
     delete PAY[m];CMESA=null;if(ROLE==="atend")VIEW="mesas";toast("Mesa "+m+" fechada · "+brl(T.tot));
