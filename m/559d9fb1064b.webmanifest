@@ -1,0 +1,33 @@
+{
+  "name": "Savana Restaurante · Comanda",
+  "short_name": "Savana",
+  "description": "Comanda digital de Savana Restaurante",
+  "id": "../?marca=559d9fb1064b",
+  "start_url": "../",
+  "scope": "../",
+  "display": "standalone",
+  "orientation": "any",
+  "lang": "pt-BR",
+  "background_color": "#120e0c",
+  "theme_color": "#1c1613",
+  "icons": [
+    {
+      "src": "559d9fb1064b-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "559d9fb1064b-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "559d9fb1064b-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
