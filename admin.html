@@ -53,8 +53,19 @@ textarea{min-height:80px;resize:vertical;font-size:14px}
 <section id="keyBox" class="box">
   <b>Chave do administrador</b>
   <p class="note" id="keyStatus">Cole a chave que você recebeu (começa com CO1.). Ela fica guardada só neste aparelho e é ela que gera os acessos dos clientes. Nunca mande essa chave para ninguém.</p>
-  <div id="keyForm"><textarea id="keyIn" placeholder="CO1.…" spellcheck="false" autocomplete="off"></textarea><button class="btn pri wide" type="button" id="keySave" style="margin-top:8px">Guardar chave</button></div>
-  <button class="btn ghost mini" type="button" id="keyForget" hidden style="margin-top:8px">Apagar chave deste aparelho</button>
+  <div id="keyForm"><textarea id="keyIn" placeholder="CO1.…" spellcheck="false" autocomplete="off"></textarea></div>
+  <div id="pwNew" hidden style="display:grid;gap:8px;margin-top:8px">
+    <label for="pw1">Crie a sua senha de acesso</label><input type="password" id="pw1" autocomplete="new-password" placeholder="Mínimo de 6 caracteres">
+    <label for="pw2">Repita a senha</label><input type="password" id="pw2" autocomplete="new-password">
+    <button class="btn pri wide" type="button" id="pwSave">Salvar senha e entrar</button></div>
+  <div id="pwLogin" hidden style="display:grid;gap:8px;margin-top:8px">
+    <label for="pwIn">Senha de acesso</label><input type="password" id="pwIn" autocomplete="current-password">
+    <button class="btn pri wide" type="button" id="pwGo">Entrar</button>
+    <button class="btn ghost mini" type="button" id="pwForgot">Esqueci a senha</button></div>
+  <div id="pwTools" hidden style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+    <button class="btn ghost mini" type="button" id="pwLock">Trancar agora</button>
+    <button class="btn ghost mini" type="button" id="pwChange">Trocar senha</button>
+    <button class="btn ghost mini" type="button" id="keyForget">Apagar chave deste aparelho</button></div>
 </section>
 
 <div id="main" hidden>
@@ -137,15 +148,56 @@ async function sign(payload){
   const sig=await crypto.subtle.sign({name:"ECDSA",hash:"SHA-256"},PRIV,pb);
   return b64u(pb)+"."+b64u(sig);
 }
-async function init(){
-  const k=ls("co_admin_key");
-  if(k){try{PRIV=await loadKey(k)}catch(e){PRIV=null}}
-  $("keyForm").hidden=!!PRIV;$("keyForget").hidden=!PRIV;$("main").hidden=!PRIV;
-  $("keyStatus").textContent=PRIV?"Chave guardada neste aparelho ✓":"Cole a chave que você recebeu (começa com CO1.). Ela fica guardada só neste aparelho e é ela que gera os acessos dos clientes. Nunca mande essa chave para ninguém.";
-  if(PRIV){if(!$("valido").value)$("valido").value=addDays(ymd(new Date()),30);if(!$("codigo").value)novoCodigo();lista()}
+/* chave protegida por senha: a chave fica cifrada neste aparelho (PBKDF2 + AES-GCM) */
+const LOCK="co_admin_lock";let KEYTXT=null,PWMODE="";
+const ub=s=>Uint8Array.from(atob(s.replace(/-/g,"+").replace(/_/g,"/")),c=>c.charCodeAt(0));
+async function pwKey(pw,salt){const base=await crypto.subtle.importKey("raw",new TextEncoder().encode(pw),"PBKDF2",false,["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:310000,hash:"SHA-256"},base,{name:"AES-GCM",length:256},false,["encrypt","decrypt"])}
+async function lockSave(txt,pw){const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
+  const c=await crypto.subtle.encrypt({name:"AES-GCM",iv},await pwKey(pw,salt),new TextEncoder().encode(txt));
+  ls(LOCK,JSON.stringify({v:1,s:b64u(salt),i:b64u(iv),c:b64u(c)}));ls("co_admin_key",null)}
+async function lockOpen(pw){const o=JSON.parse(ls(LOCK));
+  const t=await crypto.subtle.decrypt({name:"AES-GCM",iv:ub(o.i)},await pwKey(pw,ub(o.s)),ub(o.c));return new TextDecoder().decode(t)}
+function show(st){
+  $("keyForm").hidden=st!=="paste";$("pwNew").hidden=!(st==="paste"||st==="create");$("pwLogin").hidden=st!=="login";
+  $("pwTools").hidden=st!=="open";$("main").hidden=st!=="open";
+  $("keyStatus").textContent=st==="open"?"Admin liberado ✓ A chave está trancada com a sua senha neste aparelho."
+    :st==="login"?"Digite a sua senha para abrir o admin."
+    :st==="create"?(PWMODE==="troca"?"Crie a nova senha.":"Agora a chave fica protegida por uma senha que você escolhe. Crie a sua senha para continuar.")
+    :"Cole a chave que você recebeu (começa com CO1.) e crie a sua senha. A chave fica trancada só neste aparelho e é ela que gera os acessos dos clientes. Nunca mande essa chave para ninguém.";
+  if(st==="login")setTimeout(()=>$("pwIn").focus(),50);
 }
-$("keySave").onclick=async()=>{try{PRIV=await loadKey($("keyIn").value);ls("co_admin_key",$("keyIn").value.trim());$("keyIn").value="";toast("Chave guardada");init()}catch(e){toast("Chave inválida. Confira se copiou tudo.",true)}};
-$("keyForget").onclick=e=>{const b=e.target;if(!b.dataset.sure){b.dataset.sure=1;b.textContent="Toque de novo para apagar";return}ls("co_admin_key",null);PRIV=null;init()};
+async function init(){
+  if(PRIV){show("open");if(!$("valido").value)$("valido").value=addDays(ymd(new Date()),30);if(!$("codigo").value)novoCodigo();lista();return}
+  const old=ls("co_admin_key");
+  if(ls(LOCK))return show("login");
+  if(old){try{await loadKey(old);KEYTXT=old;PWMODE="";return show("create")}catch(e){ls("co_admin_key",null)}}
+  show("paste");
+}
+$("pwSave").onclick=async()=>{
+  const a=$("pw1").value,b=$("pw2").value;
+  if(a.length<6){toast("A senha precisa ter pelo menos 6 caracteres.",true);return}
+  if(a!==b){toast("As senhas não são iguais.",true);return}
+  let txt=KEYTXT;
+  if(!$("keyForm").hidden){txt=$("keyIn").value.trim();try{await loadKey(txt)}catch(e){toast("Chave inválida. Confira se copiou tudo.",true);return}}
+  if(!txt){toast("Cole a chave primeiro.",true);return}
+  try{PRIV=await loadKey(txt);await lockSave(txt,a);KEYTXT=null;PWMODE="";$("pw1").value=$("pw2").value=$("keyIn").value="";toast("Senha salva");init()}
+  catch(e){toast("Não consegui salvar. Tente de novo.",true)}
+};
+let PW_ERR=0;
+$("pwGo").onclick=async()=>{const pw=$("pwIn").value;if(!pw)return;
+  try{const t=await lockOpen(pw);PRIV=await loadKey(t);$("pwIn").value="";PW_ERR=0;
+    if($("pwGo").dataset.troca){delete $("pwGo").dataset.troca;KEYTXT=t;PRIV=null;PWMODE="troca";show("create");return}
+    init()}
+  catch(e){PW_ERR++;$("pwIn").value="";toast(PW_ERR>=3?"Senha errada. Se esqueceu, toque em \"Esqueci a senha\" e cole a chave de novo.":"Senha errada.",true)}};
+$("pwIn").addEventListener("keydown",e=>{if(e.key==="Enter")$("pwGo").click()});
+$("pwForgot").onclick=e=>{const b=e.target;if(!b.dataset.sure){b.dataset.sure=1;b.textContent="Toque de novo: vai pedir a chave CO1. outra vez";return}ls(LOCK,null);delete b.dataset.sure;b.textContent="Esqueci a senha";show("paste")};
+$("pwLock").onclick=()=>{PRIV=null;init();scrollTo(0,0)};
+$("pwChange").onclick=async()=>{PWMODE="troca";
+  const o=$("pwTools");o.hidden=true;$("main").hidden=true;
+  $("keyStatus").textContent="Digite a senha atual para trocar.";$("pwLogin").hidden=false;$("pwGo").dataset.troca=1;
+  PRIV=null};
+$("keyForget").onclick=e=>{const b=e.target;if(!b.dataset.sure){b.dataset.sure=1;b.textContent="Toque de novo para apagar";return}ls("co_admin_key",null);ls(LOCK,null);PRIV=null;init()};
 function novoCodigo(){$("codigo").value=slug($("nome").value)+"-"+rnd(5)}
 $("novoCod").onclick=()=>{delete $("codigo").dataset.fixo;novoCodigo()};
 $("nome").oninput=()=>{if(!$("codigo").dataset.fixo)novoCodigo()};
