@@ -1,0 +1,33 @@
+{
+  "name": "Ô Pastel · Comanda",
+  "short_name": "Ô Pastel",
+  "description": "Comanda digital de Ô Pastel",
+  "id": "../?marca=542f7de3269f",
+  "start_url": "../",
+  "scope": "../",
+  "display": "standalone",
+  "orientation": "any",
+  "lang": "pt-BR",
+  "background_color": "#120e0c",
+  "theme_color": "#1c1613",
+  "icons": [
+    {
+      "src": "542f7de3269f-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "542f7de3269f-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "542f7de3269f-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
